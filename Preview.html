@@ -416,6 +416,16 @@ body.night .nav{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 #cardview .cv-x{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;width:44px;height:44px;border:0;border-radius:50%;background:#fff;color:#0b0b0b;display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 #cardview .cv-x svg{width:22px;height:22px;fill:currentColor}
 #cardview .cv-x:focus-visible{outline:3px solid #52d9ae;outline-offset:2px}
+/* Welcome page tutorial */
+#welcometour{position:fixed;inset:0;z-index:55;pointer-events:none}
+#welcometour .nt-ring{position:absolute;border-radius:999px;box-shadow:0 0 0 200vmax rgba(8,6,16,.58);outline:3px solid #fff;outline-offset:2px;animation:wring 1.6s ease-in-out infinite}
+@keyframes wring{0%,100%{outline-offset:2px;outline-color:rgba(255,255,255,.95)}50%{outline-offset:9px;outline-color:rgba(255,255,255,.35)}}
+#welcometour .nt-tip{position:absolute;width:min(260px,82vw);box-sizing:border-box;background:#fff;color:#111;border-radius:18px;padding:14px 16px;box-shadow:0 16px 40px rgba(0,0,0,.35);font:400 13px/1.45 var(--body)}
+#welcometour .nt-tip::after{content:"";position:absolute;bottom:-7px;left:calc(var(--ax,50%) - 7px);width:14px;height:14px;background:#fff;transform:rotate(45deg);border-radius:3px}
+#welcometour .nt-title{display:block;font:600 14px var(--body);margin-bottom:4px}
+#welcometour .nt-text{margin:0 0 8px}
+#welcometour .nt-count{display:block;font:400 11px var(--body);color:#777}
+@media (prefers-reduced-motion:reduce){#welcometour .nt-ring{animation:none}}
 </style>
 </head>
 <body>
@@ -811,6 +821,38 @@ function startNavTour(){
   navTour.querySelector('.nt-next').focus();
 }
 window.addEventListener('hashchange',endNavTour);
+
+/* Welcome page tutorial: prompts the OKAYYYYY button (first visit only) */
+var wKey='ecv-welcome-hint-seen',wSeen=false,wTour=null,wTimer=0;
+try{wSeen=!!localStorage.getItem(wKey)}catch(e){}
+function placeWelcome(){
+  if(!wTour)return;
+  var b=document.getElementById('go'),r=b.getBoundingClientRect();
+  var ring=wTour.querySelector('.nt-ring'),tip=wTour.querySelector('.nt-tip');
+  ring.style.left=(r.left-5)+'px';ring.style.top=(r.top-5)+'px';ring.style.width=(r.width+10)+'px';ring.style.height=(r.height+10)+'px';
+  var tw=tip.offsetWidth,cx=r.left+r.width/2,left=Math.max(12,Math.min(innerWidth-tw-12,cx-tw/2));
+  tip.style.left=left+'px';tip.style.bottom=(innerHeight-r.top+20)+'px';tip.style.setProperty('--ax',(cx-left)+'px');
+}
+function wDown(){endWelcomeTour()}
+function endWelcomeTour(){
+  clearTimeout(wTimer);
+  if(!wTour)return;
+  wTour.remove();wTour=null;
+  window.removeEventListener('resize',placeWelcome);
+  document.removeEventListener('pointerdown',wDown,true);
+}
+function startWelcomeTour(){
+  if(wSeen||wTour||!document.body.classList.contains('home'))return;
+  wSeen=true;try{localStorage.setItem(wKey,'1')}catch(e){}
+  wTour=document.createElement('div');wTour.id='welcometour';
+  wTour.innerHTML='<div class="nt-ring"></div><div class="nt-tip" role="status"><b class="nt-title">Start here</b><p class="nt-text">Click mo na ’to babe</p><span class="nt-count">Tap anywhere to dismiss</span></div>';
+  document.body.appendChild(wTour);
+  placeWelcome();
+  window.addEventListener('resize',placeWelcome);
+  document.addEventListener('pointerdown',wDown,true);
+}
+window.addEventListener('hashchange',endWelcomeTour);
+wTimer=setTimeout(startWelcomeTour,1400);
 hintEl.querySelector('button').addEventListener('click',function(){startNavTour()});
 vtBtn.addEventListener('click',function(){if(tlHintShown)setTimeout(startNavTour,350)});
 
@@ -1071,7 +1113,7 @@ setInterval(tick,1000);tick();route();
   lab('Day after (gift unwrapped)');
   days.forEach(function(t){var a=t.split('-'),d=new Date(+a[0],+a[1]-1,+a[2]+1,9,0);add(M[d.getMonth()]+' '+d.getDate(),d.getTime(),M[d.getMonth()]+' '+d.getDate()+' (day after)')});
   var rb=document.createElement('button');rb.textContent='Replay tutorial';
-  rb.onclick=function(){try{localStorage.removeItem('ecv-tl-hint-seen');localStorage.removeItem('ecv-nav-tour-seen')}catch(e){}location.hash='cards';location.reload()};
+  rb.onclick=function(){try{localStorage.removeItem('ecv-welcome-hint-seen');localStorage.removeItem('ecv-tl-hint-seen');localStorage.removeItem('ecv-nav-tour-seen')}catch(e){}location.hash='home';location.reload()};
   box.insertBefore(rb,box.firstChild);
   btns[0].className='on';
   document.getElementById('pvh').onclick=function(){var h=box.style.display==='none';box.style.display=h?'flex':'none';document.getElementById('pvc').textContent=h?'▾':'▸'};
